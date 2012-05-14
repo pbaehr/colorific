@@ -226,18 +226,25 @@ def save_palette_as_image(filename, palette):
     im.save(output_filename, "PNG")
 
 def write_ase(filename, palette):
+    "Save palette as an ASE (Adobe Swatch Exchange) file"
+    # header and size info
     contents = 'ASEF\x00\x01\x00\x00'
     contents += struct.pack('>L', len(palette.colors))
     for color in palette.colors:
-        name = rgb_to_hex(color.value)
+        # start color
         contents += '\x00\x01'
+        # add name (Hex code for color)
+        name = rgb_to_hex(color.value)
         swatch = struct.pack('>h', len(name) + 1)
         swatch += name.encode('utf_16_be')
         swatch += '\x00\x00'
+        # add color info
         swatch += 'RGB '
         R, G, B = color.value
         swatch += struct.pack('>3f', R / 255, G / 255, B / 255)
+        # normal color
         swatch += '\x00\x02'
+        # add color to contents
         contents += struct.pack('>L', len(swatch))
         contents += swatch
     f = open(filename, 'wb')
