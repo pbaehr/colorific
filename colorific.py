@@ -8,6 +8,7 @@
 """
 Detect the main colors used in an image.
 """
+from __future__ import division
 
 import sys
 import optparse
@@ -15,6 +16,7 @@ from collections import Counter, namedtuple
 from operator import itemgetter, mul, attrgetter
 import multiprocessing
 import colorsys
+import struct
 
 from PIL import Image as Im
 from PIL import ImageChops, ImageDraw
@@ -222,6 +224,25 @@ def save_palette_as_image(filename, palette):
         draw.text((x1 + 4, y1 + 4), rgb_to_hex(c.value), (90, 90, 90))
         draw.text((x1 + 3, y1 + 3), rgb_to_hex(c.value))
     im.save(output_filename, "PNG")
+
+def write_ase(filename, palette):
+    contents = 'ASEF\x00\x01\x00\x00'
+    contents += struct.pack('>L', len(palette.colors))
+    for color in palette.colors:
+        name = rgb_to_hex(color.value)
+        contents += '\x00\x01'
+        swatch = struct.pack('>h', len(name) + 1)
+        swatch += name.encode('utf_16_be')
+        swatch += '\x00\x00'
+        swatch += 'RGB '
+        R, G, B = color.value
+        swatch += struct.pack('>3f', R / 255, G / 255, B / 255)
+        swatch += '\x00\x02'
+        contents += struct.pack('>L', len(swatch))
+        contents += swatch
+    f = open(filename, 'wb')
+    f.write(contents)
+    f.close()
 
 def meets_min_saturation(c, threshold):
     return colorsys.rgb_to_hsv(*norm_color(c.value))[1] > threshold
