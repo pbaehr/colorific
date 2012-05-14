@@ -8,7 +8,6 @@
 """
 Detect the main colors used in an image.
 """
-from __future__ import division
 
 import sys
 import optparse
@@ -241,13 +240,13 @@ def write_ase(filename, palette):
         swatch = struct.pack('>h', len(name) + 1)
         swatch += name.encode('utf_16_be')
         swatch += '\x00\x00'
-        # add color info
+        # add color data
         swatch += 'RGB '
-        R, G, B = map(lambda x: x / 255, color.value)
+        R, G, B = norm_color(color.value)
         swatch += struct.pack('>3f', R, G, B)
-        # normal color
+        # 'normal' color (not 'spot' or 'global')
         swatch += '\x00\x02'
-        # add color to contents
+        # add color to file contents
         contents += struct.pack('>L', len(swatch))
         contents += swatch
     output_filename = '%s.ase' % filename[:filename.rfind('.')]
@@ -329,9 +328,8 @@ def main():
                 save_palette_as_image(filename, palette)
             if options.save_ase:
                 write_ase(filename, palette)
-        sys.exit(1)
 
-    if options.n_processes > 1:
+    elif options.n_processes > 1:
         # XXX add all the knobs we can tune
         color_stream_mt(n=options.n_processes)
     else:
