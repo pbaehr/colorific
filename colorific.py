@@ -41,7 +41,8 @@ BLOCK_SIZE = 10
 N_PROCESSES = 1
 SENTINEL = 'no more to process'
 
-def color_stream_st(istream=sys.stdin, save_palette=False, **kwargs):
+def color_stream_st(istream=sys.stdin, save_palette=False,
+                    save_ase=False, **kwargs):
     "Read filenames from the input stream and detect their palette."
     for line in istream:
         filename = line.strip()
@@ -54,6 +55,8 @@ def color_stream_st(istream=sys.stdin, save_palette=False, **kwargs):
         print_colors(filename, palette)
         if save_palette:
             save_palette_as_image(filename, palette)
+        if save_ase:
+            write_ase(filename, palette)
 
 def color_stream_mt(istream=sys.stdin, n=N_PROCESSES, **kwargs):
     """
@@ -240,14 +243,15 @@ def write_ase(filename, palette):
         swatch += '\x00\x00'
         # add color info
         swatch += 'RGB '
-        R, G, B = color.value
-        swatch += struct.pack('>3f', R / 255, G / 255, B / 255)
+        R, G, B = map(lambda x: x / 255, color.value)
+        swatch += struct.pack('>3f', R, G, B)
         # normal color
         swatch += '\x00\x02'
         # add color to contents
         contents += struct.pack('>L', len(swatch))
         contents += swatch
-    f = open(filename, 'wb')
+    output_filename = '%s.ase' % filename[:filename.rfind('.')]
+    f = open(output_filename, 'wb')
     f.write(contents)
     f.close()
 
@@ -296,6 +300,9 @@ each containing hex color values."""
     parser.add_option('-o', action='store_true',
             dest='save_palette', default=False,
             help='Output the palette as an image file')
+    parser.add_option('-a', action='store_true',
+            dest='save_ase', default=False,
+            help='Output the palette as an ASE (Adobe Swatch Exchange) file.')
 
     return parser
 
@@ -320,6 +327,8 @@ def main():
             print_colors(filename, palette)
             if options.save_palette:
                 save_palette_as_image(filename, palette)
+            if options.save_ase:
+                write_ase(filename, palette)
         sys.exit(1)
 
     if options.n_processes > 1:
@@ -332,7 +341,8 @@ def main():
                 min_distance=options.min_distance,
                 max_colors=options.max_colors,
                 n_quantized=options.n_quantized,
-                save_palette=options.save_palette
+                save_palette=options.save_palette,
+                save_ase=options.save_ase
             )
 
 #----------------------------------------------------------------------------#
